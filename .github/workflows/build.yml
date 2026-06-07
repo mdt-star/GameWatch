@@ -21,7 +21,6 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
-        modules: 'qtnetwork'  # PushDeer 需要 Network 模块
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
