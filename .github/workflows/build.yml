@@ -27,14 +27,24 @@ jobs:
         target: 'desktop'
         arch: 'win64_msvc2019_64'
 
+    - name: Install vcpkg dependencies
+      run: |
+        vcpkg install openssl-windows:x64-windows
+        echo "VCPKG_ROOT=${VCPKG_INSTALLATION_ROOT}" | Out-File -FilePath $env:GITHUB_ENV -Append
+
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
 
     - name: Build
       run: cmake --build build --config Release
 
     - name: Deploy Qt DLLs
-      run: windeployqt build/Release/GameWatch.exe
+      run: windeployqt --network build/Release/GameWatch.exe
+
+    - name: Copy OpenSSL DLLs
+      run: |
+        copy "$env:VCPKG_INSTALLATION_ROOT\packages\openssl-windows_x64-windows\bin\libcrypto-3-x64.dll" build/Release/
+        copy "$env:VCPKG_INSTALLATION_ROOT\packages\openssl-windows_x64-windows\bin\libssl-3-x64.dll" build/Release/
 
     - name: Package
       run: |
