@@ -7,12 +7,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 COMPONENTS Widgets Network QUIET)
+find_package(Qt6 COMPONENTS Widgets QUIET)
 if(NOT Qt6_FOUND)
-    find_package(Qt5 5.15 REQUIRED COMPONENTS Widgets Network)
-    set(QT_LIBS Qt5::Widgets Qt5::Network)
+    find_package(Qt5 5.15 REQUIRED COMPONENTS Widgets)
+    set(QT_LIBS Qt5::Widgets)
 else()
-    set(QT_LIBS Qt6::Widgets Qt6::Network)
+    set(QT_LIBS Qt6::Widgets)
 endif()
 
 set(SOURCES
@@ -30,9 +30,14 @@ set(HEADERS
 
 if(WIN32)
     list(APPEND SOURCES windowmonitor_win.cpp)
+    # WinHTTP is linked via pragma comment in the source
 else()
     list(APPEND SOURCES windowmonitor_mac.mm)
 endif()
 
 add_executable(GameWatch WIN32 ${SOURCES} ${HEADERS})
 target_link_libraries(GameWatch PRIVATE ${QT_LIBS})
+
+if(WIN32)
+    target_link_libraries(GameWatch PRIVATE winhttp)
+endif()

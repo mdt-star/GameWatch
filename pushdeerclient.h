@@ -3,8 +3,6 @@
 
 #include <QObject>
 #include <QString>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
 class PushDeerClient : public QObject
 {
@@ -20,18 +18,14 @@ public:
     void setPushUrl(const QString &url);
     QString pushUrl() const;
 
-    /// Send a push notification.
-    /// The default PushDeer URL is https://api2.pushdeer.com/message/push
+    /// Send a push notification synchronously (no Qt Network dependency).
+    /// Uses WinHTTP on Windows, libcurl on macOS (via system curl).
     void sendMessage(const QString &text);
 
 signals:
     void messageSent(bool success, const QString &errorMsg);
 
-private slots:
-    void onReplyFinished(QNetworkReply *reply);
-
 private:
-    QNetworkAccessManager *m_nam;
     QString m_pushKey;
     QString m_pushUrl;
 };
