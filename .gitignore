@@ -1,0 +1,29 @@
+# Build directory
+build/
+cmake-build-*/
+
+# Qt Creator
+*.pro.user
+*.pro.user.*
+CMakeLists.txt.user
+*.autosave
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user
+*.vcxproj.filters
+
+# Qt
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
