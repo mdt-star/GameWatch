@@ -244,7 +244,12 @@ static bool httpGet(const QString &url, QString &responseBody, QString &errorMsg
     responseBody = QString::fromUtf8(data); return true;
 }
 #elif defined(Q_OS_WIN32)
-#include <windows.h> #include <winhttp.h> #include <vector>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <winhttp.h>
+#include <vector>
 static std::wstring toWide(const std::string &u) {
     int l = MultiByteToWideChar(CP_UTF8,0,u.c_str(),(int)u.size(),0,0);
     if(l<=0) return {}; std::wstring r((size_t)l,0); MultiByteToWideChar(CP_UTF8,0,u.c_str(),(int)u.size(),&r[0],l); return r;
