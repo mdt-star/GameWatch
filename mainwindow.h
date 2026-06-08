@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTabWidget>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QTextEdit>
@@ -14,6 +15,7 @@
 
 class WindowMonitor;
 class PushDeerClient;
+class DD373Dialog;
 
 class MainWindow : public QMainWindow
 {
@@ -32,19 +34,23 @@ private slots:
     void onUiTick();
 
 private:
-    void setupUI();
+    void setupGameWatchTab(QWidget *tab);
+    void setupDD373Tab(QWidget *tab);
     void loadSettings();
     void saveSettings();
-    void sendAlert(int currentCount);    // 只在满足条件时发送推送
+    void sendAlert(int currentCount);
 
-    // Configuration controls
+    QTabWidget *m_tabWidget;
+    DD373Dialog *m_dd373Dialog;
+
+    // GameWatch tab controls
     QLineEdit   *m_windowMatchEdit;
     QSpinBox    *m_thresholdSpin;
     QLineEdit   *m_pushKeyEdit;
     QLineEdit   *m_pushUrlEdit;
     QTextEdit   *m_messageTemplateEdit;
     QCheckBox   *m_enabledCheck;
-    QSpinBox    *m_cooldownSpin;       // 冷却时间（秒）
+    QSpinBox    *m_cooldownSpin;
 
     // Status
     QLabel      *m_statusLabel;
@@ -56,10 +62,9 @@ private:
     // Core
     WindowMonitor   *m_monitor;
     PushDeerClient  *m_pushClient;
-    QDateTime        m_lastAlertTime;  // 上次推送时间，用于冷却
-    int              m_lastCount;      // 缓存最近一次窗口数，给 UI 定时器用
-    QTimer          *m_uiTimer;        // 1秒定时器，统一刷新状态栏
-    bool             m_isWaitingPush;  // 标记是否需要发送推送（冷却结束后为 true）
+    QDateTime        m_lastAlertTime;
+    int              m_lastCount;
+    QTimer          *m_uiTimer;
 };
 
 #endif // MAINWINDOW_H

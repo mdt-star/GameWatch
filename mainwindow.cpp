@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "windowmonitor.h"
 #include "pushdeerclient.h"
+#include "dd373/dd373dialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -16,14 +17,23 @@ MainWindow::MainWindow(QWidget *parent)
     , m_pushClient(new PushDeerClient(this))
     , m_lastCount(-1)
     , m_uiTimer(new QTimer(this))
-    , m_isWaitingPush(false)
 {
     setWindowTitle(QStringLiteral("GameWatch - 游戏窗口监控"));
     setMinimumSize(500, 630);
     resize(520, 680);
 
-    setupUI();
-    loadSettings();
+    // Tab widget
+    m_tabWidget = new QTabWidget(this);
+    setCentralWidget(m_tabWidget);
+
+    // Tab 1: GameWatch
+    QWidget *gwTab = new QWidget(this);
+    setupGameWatchTab(gwTab);
+    m_tabWidget->addTab(gwTab, QStringLiteral("窗口监控"));
+
+    // Tab 2: DD373
+    m_dd373Dialog = new DD373Dialog(this);
+    m_tabWidget->addTab(m_dd373Dialog, QStringLiteral("DD373 商品"));
 
     // Connect monitor signals
     connect(m_monitor, &WindowMonitor::windowCountChanged,
@@ -36,33 +46,28 @@ MainWindow::MainWindow(QWidget *parent)
     // 1秒定时器，统一刷新状态栏
     connect(m_uiTimer, &QTimer::timeout, this, &MainWindow::onUiTick);
     m_uiTimer->start(1000);
+
+    loadSettings();
 }
 
 MainWindow::~MainWindow() = default;
 
-// ============================================================
-// UI Setup
-// ============================================================
-
-void MainWindow::setupUI()
+void MainWindow::setupGameWatchTab(QWidget *tab)
 {
-    QWidget *central = new QWidget(this);
-    setCentralWidget(central);
-
-    QVBoxLayout *mainLayout = new QVBoxLayout(central);
+    QVBoxLayout *mainLayout = new QVBoxLayout(tab);
     mainLayout->setSpacing(12);
     mainLayout->setContentsMargins(16, 16, 16, 16);
 
     // ---- Window Match Config ----
-    QGroupBox *matchGroup = new QGroupBox(QStringLiteral("窗口匹配配置"), this);
+    QGroupBox *matchGroup = new QGroupBox(QStringLiteral("窗口匹配配置"), tab);
     QFormLayout *matchForm = new QFormLayout(matchGroup);
 
-    m_windowMatchEdit = new QLineEdit(this);
+    m_windowMatchEdit = new QLineEdit(tab);
     m_windowMatchEdit->setPlaceholderText(QStringLiteral("例如: 原神 或 Genshin|Honkai"));
     m_windowMatchEdit->setToolTip(QStringLiteral("匹配窗口标题的关键词，支持正则表达式"));
     matchForm->addRow(QStringLiteral("窗口标题关键词:"), m_windowMatchEdit);
 
-    m_thresholdSpin = new QSpinBox(this);
+    m_thresholdSpin = new QSpinBox(tab);
     m_thresholdSpin->setRange(1, 999);
     m_thresholdSpin->setValue(1);
     m_thresholdSpin->setSuffix(QStringLiteral(" 个"));
@@ -71,15 +76,15 @@ void MainWindow::setupUI()
     mainLayout->addWidget(matchGroup);
 
     // ---- PushDeer Config ----
-    QGroupBox *pushGroup = new QGroupBox(QStringLiteral("PushDeer 推送配置"), this);
+    QGroupBox *pushGroup = new QGroupBox(QStringLiteral("PushDeer 推送配置"), tab);
     QFormLayout *pushForm = new QFormLayout(pushGroup);
 
-    m_pushKeyEdit = new QLineEdit(this);
+    m_pushKeyEdit = new QLineEdit(tab);
     m_pushKeyEdit->setPlaceholderText(QStringLiteral("PDU... 或 PushDeer Key"));
     m_pushKeyEdit->setEchoMode(QLineEdit::Password);
     pushForm->addRow(QStringLiteral("PushDeer Key:"), m_pushKeyEdit);
 
-    m_pushUrlEdit = new QLineEdit(this);
+    m_pushUrlEdit = new QLineEdit(tab);
     m_pushUrlEdit->setPlaceholderText(QStringLiteral("https://api2.pushdeer.com/message/push"));
     m_pushUrlEdit->setText(QStringLiteral("https://api2.pushdeer.com/message/push"));
     pushForm->addRow(QStringLiteral("推送服务地址:"), m_pushUrlEdit);
@@ -87,10 +92,10 @@ void MainWindow::setupUI()
     mainLayout->addWidget(pushGroup);
 
     // ---- Message Template ----
-    QGroupBox *msgGroup = new QGroupBox(QStringLiteral("推送消息内容"), this);
+    QGroupBox *msgGroup = new QGroupBox(QStringLiteral("推送消息内容"), tab);
     QVBoxLayout *msgLayout = new QVBoxLayout(msgGroup);
 
-    m_messageTemplateEdit = new QTextEdit(this);
+    m_messageTemplateEdit = new QTextEdit(tab);
     m_messageTemplateEdit->setPlaceholderText(
         QStringLiteral("可用变量:\n")
         + QStringLiteral("{count} - 当前匹配窗口数\n")
@@ -103,8 +108,8 @@ void MainWindow::setupUI()
 
     // ---- Cooldown ----
     QHBoxLayout *cdLayout = new QHBoxLayout();
-    cdLayout->addWidget(new QLabel(QStringLiteral("推送冷却时间:"), this));
-    m_cooldownSpin = new QSpinBox(this);
+    cdLayout->addWidget(new QLabel(QStringLiteral("推送冷却时间:"), tab));
+    m_cooldownSpin = new QSpinBox(tab);
     m_cooldownSpin->setRange(10, 3600);
     m_cooldownSpin->setValue(60);
     m_cooldownSpin->setSuffix(QStringLiteral(" 秒"));
@@ -116,14 +121,14 @@ void MainWindow::setupUI()
     mainLayout->addWidget(msgGroup);
 
     // ---- Status Area ----
-    QGroupBox *statusGroup = new QGroupBox(QStringLiteral("运行状态"), this);
+    QGroupBox *statusGroup = new QGroupBox(QStringLiteral("运行状态"), tab);
     QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
 
-    m_countLabel = new QLabel(QStringLiteral("当前匹配窗口数: --"), this);
+    m_countLabel = new QLabel(QStringLiteral("当前匹配窗口数: --"), tab);
     m_countLabel->setStyleSheet(QStringLiteral("font-size: 14px; font-weight: bold;"));
     statusLayout->addWidget(m_countLabel);
 
-    m_statusLabel = new QLabel(QStringLiteral("状态: 未启动"), this);
+    m_statusLabel = new QLabel(QStringLiteral("状态: 未启动"), tab);
     statusLayout->addWidget(m_statusLabel);
 
     mainLayout->addWidget(statusGroup);
@@ -131,20 +136,20 @@ void MainWindow::setupUI()
     // ---- Control Buttons ----
     QHBoxLayout *btnLayout = new QHBoxLayout();
 
-    m_enabledCheck = new QCheckBox(QStringLiteral("启动时自动监控"), this);
+    m_enabledCheck = new QCheckBox(QStringLiteral("启动时自动监控"), tab);
     btnLayout->addWidget(m_enabledCheck);
 
     btnLayout->addStretch();
 
-    m_testPushBtn = new QPushButton(QStringLiteral("测试推送"), this);
+    m_testPushBtn = new QPushButton(QStringLiteral("测试推送"), tab);
     btnLayout->addWidget(m_testPushBtn);
 
-    m_startBtn = new QPushButton(QStringLiteral("开始监控"), this);
-    m_startBtn->setStyleSheet(
-        QStringLiteral("QPushButton { padding: 6px 20px; font-size: 14px; }"));
+    m_startBtn = new QPushButton(QStringLiteral("开始监控"), tab);
+    m_startBtn->setMinimumHeight(36);
     btnLayout->addWidget(m_startBtn);
 
-    m_applyBtn = new QPushButton(QStringLiteral("保存设置"), this);
+    m_applyBtn = new QPushButton(QStringLiteral("保存设置"), tab);
+    m_applyBtn->setMinimumHeight(36);
     btnLayout->addWidget(m_applyBtn);
 
     mainLayout->addLayout(btnLayout);
@@ -155,9 +160,10 @@ void MainWindow::setupUI()
     connect(m_applyBtn, &QPushButton::clicked, this, &MainWindow::onApplySettings);
 }
 
-// ============================================================
-// Settings persistence
-// ============================================================
+void MainWindow::setupDD373Tab(QWidget * /*tab*/)
+{
+    // DD373Dialog is set as a tab directly in the constructor
+}
 
 void MainWindow::loadSettings()
 {
@@ -180,10 +186,8 @@ void MainWindow::loadSettings()
     m_enabledCheck->setChecked(
         settings.value(QStringLiteral("general/auto_start"), false).toBool());
 
-    // Apply loaded settings to core objects
     onApplySettings();
 
-    // Auto-start if enabled
     if (m_enabledCheck->isChecked()) {
         QTimer::singleShot(500, this, [this]() {
             if (!m_monitor->isRunning()) {
@@ -206,17 +210,12 @@ void MainWindow::saveSettings()
     settings.setValue(QStringLiteral("general/auto_start"), m_enabledCheck->isChecked());
 }
 
-// ============================================================
-// Slot implementations
-// ============================================================
-
 void MainWindow::onApplySettings()
 {
     m_monitor->setWindowMatchString(m_windowMatchEdit->text());
     m_pushClient->setPushKey(m_pushKeyEdit->text());
     m_pushClient->setPushUrl(m_pushUrlEdit->text());
     saveSettings();
-
     m_statusLabel->setText(QStringLiteral("设置已保存"));
 }
 
@@ -243,7 +242,6 @@ void MainWindow::onStartStop()
         }
 
         m_lastAlertTime = QDateTime();
-        m_isWaitingPush = false;
         m_monitor->setWindowMatchString(m_windowMatchEdit->text());
         m_pushClient->setPushKey(m_pushKeyEdit->text());
         m_pushClient->setPushUrl(m_pushUrlEdit->text());
@@ -263,27 +261,19 @@ void MainWindow::onWindowCountChanged(int count)
 
     int threshold = m_thresholdSpin->value();
     if (count >= threshold) {
-        // 窗口数恢复正常
         m_lastAlertTime = QDateTime();
-        m_isWaitingPush = false;
     }
-    // 如果 count < threshold，onUiTick 会统一处理提示和推送逻辑
 }
 
 void MainWindow::onUiTick()
 {
-    if (!m_monitor->isRunning()) {
-        return;
-    }
+    if (!m_monitor->isRunning()) return;
 
     int count = m_lastCount;
     int threshold = m_thresholdSpin->value();
     int cooldown = m_cooldownSpin->value();
 
-    if (count < 0) {
-        // 尚未获取到数据
-        return;
-    }
+    if (count < 0) return;
 
     if (count >= threshold) {
         m_statusLabel->setText(
@@ -292,11 +282,9 @@ void MainWindow::onUiTick()
         return;
     }
 
-    // ---- count < threshold ----
     QDateTime now = QDateTime::currentDateTime();
 
     if (!m_lastAlertTime.isValid()) {
-        // 从未发送过推送 → 立即发送
         m_lastAlertTime = now;
         sendAlert(count);
         m_statusLabel->setText(
@@ -308,14 +296,12 @@ void MainWindow::onUiTick()
     qint64 elapsed = m_lastAlertTime.secsTo(now);
 
     if (elapsed >= cooldown) {
-        // 冷却结束，发送推送
         m_lastAlertTime = now;
         sendAlert(count);
         m_statusLabel->setText(
             QStringLiteral("⚠️ 警报: 窗口数 %1 低于阈值 %2 (已推送)")
                 .arg(count).arg(threshold));
     } else {
-        // 冷却中
         m_statusLabel->setText(
             QStringLiteral("⚠️ 窗口数 %1 低于阈值 %2 (冷却中，剩余 %3 秒)")
                 .arg(count).arg(threshold)
@@ -359,9 +345,7 @@ void MainWindow::onTestPush()
 void MainWindow::onPushResult(bool success, const QString &error)
 {
     if (success) {
-        if (m_monitor->isRunning()) {
-            // 不覆盖监控状态，等 onUiTick 下次刷新
-        } else {
+        if (!m_monitor->isRunning()) {
             m_statusLabel->setText(QStringLiteral("测试推送成功"));
         }
     } else {
