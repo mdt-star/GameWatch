@@ -8,6 +8,7 @@
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QMessageBox>
+#include <QStatusBar>
 #include <QDateTime>
 #include <QTimer>
 
@@ -33,6 +34,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Tab 2: DD373
     m_dd373Dialog = new DD373Dialog(this);
+    m_dd373Dialog->setPushDeerClient(m_pushClient);
+    connect(m_dd373Dialog, &DD373Dialog::statusMessage, this, [this](const QString &msg) {
+        statusBar()->showMessage(msg, 5000);
+    });
+    connect(m_dd373Dialog, &DD373Dialog::notifyConfigRequired, this, [this]() {
+        QMessageBox::information(this, QStringLiteral("配置提醒"),
+            QStringLiteral("请先在「窗口监控」标签页配置 PushDeer Key，\n"
+                           "否则无法发送通知。"));
+        // Switch to GameWatch tab
+        m_tabWidget->setCurrentIndex(0);
+    });
     m_tabWidget->addTab(m_dd373Dialog, QStringLiteral("DD373 商品"));
 
     // Connect monitor signals

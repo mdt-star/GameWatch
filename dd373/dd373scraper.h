@@ -16,20 +16,16 @@ public:
     explicit DD373Scraper(QObject *parent = nullptr);
     ~DD373Scraper() override;
 
-    /// Fetch and parse the dd373 page. Results are emitted via itemsParsed.
     void fetchPage(const QString &url);
 
-    /// Parse HTML string into items
-    static QList<DD373Item> parseHtml(const QString &html, const QString &baseUrl);
+    static QList<DD373Item> parseHtml(const QString &html, const QString &baseUrl,
+                                       int &totalCount, int &totalPages);
 
-    /// Parse monthly card date from various formats
     static QDate parseMonthlyCardDate(const QString &raw, bool &doubtful);
-
-    /// Parse publish time string
     static QDateTime parsePublishTime(const QString &raw);
 
 signals:
-    void itemsParsed(const QList<DD373Item> &items);
+    void itemsParsed(const QList<DD373Item> &items, int totalCount, int totalPages, int currentPage);
     void errorOccurred(const QString &error);
 
 private:
