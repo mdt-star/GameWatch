@@ -263,6 +263,9 @@ static bool httpGet(const QString &url, QString &responseBody, QString &errorMsg
     bool tls=(uc.nScheme==INTERNET_SCHEME_HTTPS);
     HINTERNET hS=WinHttpOpen(L"GameWatch/1.0",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,0,0,0);
     if(!hS){errorMsg=QStringLiteral("WinHttpOpen失败");return false;}
+    // Enable automatic decompression of gzip/deflate
+    DWORD decoFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
+    WinHttpSetOption(hS, WINHTTP_OPTION_DECOMPRESSION, &decoFlags, sizeof(decoFlags));
     HINTERNET hC=WinHttpConnect(hS,host.c_str(),uc.nPort,0);
     if(!hC){errorMsg=QStringLiteral("WinHttpConnect失败");WinHttpCloseHandle(hS);return false;}
     HINTERNET hR=WinHttpOpenRequest(hC,L"GET",full.c_str(),0,0,0,tls?WINHTTP_FLAG_SECURE:0);
