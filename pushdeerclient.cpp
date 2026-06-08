@@ -87,6 +87,7 @@ void PushDeerClient::sendMessage(const QString &text)
 // Windows: use WinHTTP (Schannel TLS, no OpenSSL needed)
 #include <windows.h>
 #include <winhttp.h>
+#include <vector>
 
 static std::wstring utf8ToWide(const std::string &utf8)
 {

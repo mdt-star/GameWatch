@@ -16,6 +16,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QPixmap>
+#include <QSet>
 #include <QApplication>
 #include <QScreen>
 
